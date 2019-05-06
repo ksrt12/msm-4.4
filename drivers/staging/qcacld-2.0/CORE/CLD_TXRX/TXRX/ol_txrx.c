@@ -3228,6 +3228,29 @@ void ol_txrx_display_stats(struct ol_txrx_pdev_t *pdev, uint16_t value)
     }
 }
 
+#ifdef CONFIG_HL_SUPPORT
+void ol_txrx_get_stats(struct ol_txrx_pdev_t *pdev, uint16_t value,
+		       void *data_ptr)
+{
+	switch (value) {
+	case WLAN_SCHEDULER_STATS:
+		ol_tx_sched_stats_get(pdev, data_ptr);
+		break;
+
+	default:
+		VOS_TRACE(VOS_MODULE_ID_TXRX, VOS_TRACE_LEVEL_ERROR,
+			  "%s: Unknown value %d", __func__, value);
+		break;
+	}
+}
+#else
+void ol_txrx_get_stats(struct ol_txrx_pdev_t *pdev, uint16_t value,
+		       void *data_ptr)
+{
+	return;
+}
+#endif
+
 void ol_txrx_clear_stats(struct ol_txrx_pdev_t *pdev, uint16_t value)
 {
 
