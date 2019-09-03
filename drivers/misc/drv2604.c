@@ -401,11 +401,11 @@ static void vibrator_enable(struct timed_output_dev *dev, int value)
 			pDrv2604data->sequence[0] = 3;
 		} else {
 			pDrv2604data->sequence[0] = 2;
-			pm_stay_awake(pDrv2604data->device);
-			pDrv2604data->should_stop = NO;
-			drv2604_change_mode(pDrv2604data, WORK_SEQ_PLAYBACK, DEV_IDLE);
-			schedule_work(&pDrv2604data->vibrator_work);
 		}
+		pm_stay_awake(pDrv2604data->device);
+		pDrv2604data->should_stop = NO;
+		drv2604_change_mode(pDrv2604data, WORK_SEQ_PLAYBACK, DEV_IDLE);
+		schedule_work(&pDrv2604data->vibrator_work);
 	}
 
 	mutex_unlock(&pDrv2604data->lock);
