@@ -43,6 +43,7 @@
 #include <linux/ktime.h>
 #include <linux/extcon.h>
 #include <linux/pmic-voter.h>
+#include <linux/fb.h>
 
 /* Mask/Bit helpers */
 #define _SMB_MASK(BITS, POS) \
@@ -154,6 +155,14 @@ struct smbchg_chip {
 	struct delayed_work		parallel_en_work;
 	struct dentry			*debug_root;
 	struct smbchg_version_tables	tables;
+
+#if defined(CONFIG_FB)
+	struct notifier_block 		fb_notif;
+	struct delayed_work		screen_on_work;
+	bool				screen_on;
+	bool				screen_icl_status;
+	bool				checking_in_progress;
+#endif
 
 	/* wipower params */
 	struct ilim_map			wipower_default;
@@ -646,6 +655,65 @@ static bool is_bms_psy_present(struct smbchg_chip *chip)
 
 	return chip->bms_psy ? true : false;
 }
+
+#if defined(CONFIG_FB)
+static int smbchg_restricted_charging(struct smbchg_chip *chip, bool enable);
+static void smbchg_screen_on_work(struct work_struct *work)
+{
+	struct smbchg_chip *chip = container_of(work,
+				struct smbchg_chip,
+				screen_on_work.work);
+
+	if (chip->screen_on) {
+		chip->screen_icl_status = true;
+		smbchg_restricted_charging(chip, true);
+	} else {
+		chip->screen_icl_status = false;
+		smbchg_restricted_charging(chip, false);
+	}
+	chip->checking_in_progress = false;
+}
+
+#define SCREEN_ON_CHECK_MS	90000
+#define SCREEN_OFF_CHECK_MS	5000
+static int fb_notifier_callback(struct notifier_block *self,
+				 unsigned long event, void *data)
+{
+	struct fb_event *evdata = data;
+	int screen_check_ms;
+	int *blank;
+	struct smbchg_chip *chip =
+		container_of(self, struct smbchg_chip, fb_notif);
+
+	/* if usb is not present , no actions */
+	if (!chip->usb_present)
+		return 0;
+
+	if (evdata && evdata->data && event == FB_EVENT_BLANK) {
+		blank = evdata->data;
+
+		if (*blank == FB_BLANK_UNBLANK) {
+			chip->screen_on = true;
+			screen_check_ms = SCREEN_ON_CHECK_MS;
+			pr_info("screen on\n");
+		} else if (*blank == FB_BLANK_POWERDOWN) {
+			chip->screen_on = false;
+			screen_check_ms = SCREEN_OFF_CHECK_MS;
+			pr_info("screen off\n");
+		}
+
+		if (!chip->checking_in_progress &&
+				((*blank == FB_BLANK_UNBLANK) ||
+				 (*blank == FB_BLANK_POWERDOWN))) {
+			chip->checking_in_progress = true;
+			schedule_delayed_work(&chip->screen_on_work,
+				msecs_to_jiffies(screen_check_ms));
+		}
+	}
+
+	return 0;
+}
+#endif
 
 enum pwr_path_type {
 	UNKNOWN = 0,
@@ -4464,6 +4532,8 @@ static int smbchg_set_optimal_charging_mode(struct smbchg_chip *chip, int type)
 
 #define DEFAULT_SDP_MA		100
 #define DEFAULT_CDP_MA		1500
+#define DEFAULT_MAIN_CHG_ICL_PERCENT		60
+#define PMI8994_CHG_ICL_PERCENT_FOR_HVDCP	57
 static int smbchg_change_usb_supply_type(struct smbchg_chip *chip,
 						enum power_supply_type type)
 {
@@ -4497,6 +4567,14 @@ static int smbchg_change_usb_supply_type(struct smbchg_chip *chip,
 
 	pr_smb(PR_STATUS, "Type %d: setting mA = %d\n",
 		type, current_limit_ma);
+
+#ifdef CONFIG_MACH_XIAOMI_A1
+	if (type == POWER_SUPPLY_TYPE_USB_HVDCP)
+		smbchg_main_chg_icl_percent = PMI8994_CHG_ICL_PERCENT_FOR_HVDCP;
+	else
+		smbchg_main_chg_icl_percent = DEFAULT_MAIN_CHG_ICL_PERCENT;
+#endif
+
 	rc = vote(chip->usb_icl_votable, PSY_ICL_VOTER, true,
 				current_limit_ma);
 	if (rc < 0) {
@@ -8574,6 +8652,14 @@ static int smbchg_probe(struct platform_device *pdev)
 	update_usb_status(chip, is_usb_present(chip), false);
 	dump_regs(chip);
 	create_debugfs_entries(chip);
+
+#if defined(CONFIG_FB)
+	chip->checking_in_progress = false;
+	chip->fb_notif.notifier_call = fb_notifier_callback;
+	fb_register_client(&chip->fb_notif);
+	INIT_DELAYED_WORK(&chip->screen_on_work, smbchg_screen_on_work);
+#endif
+
 	dev_info(chip->dev,
 		"SMBCHG successfully probe Charger version=%s Revision DIG:%d.%d ANA:%d.%d batt=%d dc=%d usb=%d\n",
 			version_str[chip->schg_version],
