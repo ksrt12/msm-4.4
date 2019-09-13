@@ -3057,11 +3057,6 @@
 			qcom,sensor-name = "msm_therm";
 		};
 
-		sensor_information18: qcom,sensor-information-18 {
-			qcom,sensor-type =  "adc";
-			qcom,sensor-name = "emmc_therm";
-		};
-
 		sensor_information19: qcom,sensor-information-19 {
 			qcom,sensor-type =  "adc";
 			qcom,sensor-name = "pa_therm0";

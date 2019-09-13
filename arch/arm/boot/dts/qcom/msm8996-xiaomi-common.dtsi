@@ -99,17 +99,6 @@
 		qcom,fast-avg-setup = <0>;
 	};
 
-	chan@74 {
-		label = "emmc_therm";
-		reg = <0x74>;
-		qcom,decimation = <0>;
-		qcom,pre-div-channel-scaling = <0>;
-		qcom,calibration-type = "ratiometric";
-		qcom,scale-function = <2>;
-		qcom,hw-settle-time = <2>;
-		qcom,fast-avg-setup = <0>;
-	};
-
 	chan@75 {
 		label = "pa_therm0";
 		reg = <0x75>;
@@ -166,19 +155,6 @@
 		qcom,hw-settle-time = <2>;
 		qcom,fast-avg-setup = <0>;
 		qcom,btm-channel-number = <0x48>;
-		qcom,thermal-node;
-	};
-
-	chan@74 {
-		label = "emmc_therm";
-		reg = <0x74>;
-		qcom,decimation = <0>;
-		qcom,pre-div-channel-scaling = <0>;
-		qcom,calibration-type = "ratiometric";
-		qcom,scale-function = <2>;
-		qcom,hw-settle-time = <2>;
-		qcom,fast-avg-setup = <0>;
-		qcom,btm-channel-number = <0x68>;
 		qcom,thermal-node;
 	};
 
