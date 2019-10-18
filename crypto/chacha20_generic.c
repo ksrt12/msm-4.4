@@ -103,7 +103,7 @@ static void chacha20_docrypt(u32 *state, u8 *dst, const u8 *src,
 
 void crypto_chacha20_init(u32 *state, struct chacha20_ctx *ctx, u8 *iv)
 {
-	static const charant[16] = "expand 32-byte k";
+	static const char constant[16] = "expand 32-byte k";
 
 	state[0]  = le32_to_cpuvp(constant +  0);
 	state[1]  = le32_to_cpuvp(constant +  4);

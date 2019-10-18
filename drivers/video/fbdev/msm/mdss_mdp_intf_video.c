@@ -75,7 +75,7 @@ struct mdss_mdp_video_ctx {
 
 	u8 timegen_en;
 	bool timegen_flush_pending;
-	int polling_en;
+	bool polling_en;
 	u32 poll_cnt;
 	struct completion vsync_comp;
 	int wait_pending;
