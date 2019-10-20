@@ -638,7 +638,7 @@ void cpufreq_acct_update_power(struct task_struct *p, cputime_t cputime)
 	uid_t uid = from_kuid_munged(current_user_ns(), task_uid(p));
 	int cpu = 0;
 
-	if (!freqs || p->flags & PF_EXITING)
+	if (!freqs || is_idle_task(p) || p->flags & PF_EXITING)
 		return;
 
 	state = freqs->offset + READ_ONCE(freqs->last_index);

@@ -645,5 +645,12 @@ config RANDOM_WRITE_WAKEUP_BITS
 	help
 		This adjusts the default write entropy size.
 
+config QCOM_SDIO_CLIENT
+	bool "QCOM_SDIO_CLIENT support"
+	depends on SDIO_QCN
+	default y
+	help
+	  Interface used for SDIO and sahara user spce application
+
 endmenu
 
